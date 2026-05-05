@@ -1,21 +1,11 @@
 {
-  "builds": [
+  "buildCommand": "npm run build --prefix apps/web",
+  "outputDirectory": "dist/apps/web",
+  "framework": "vite",
+  "rewrites": [
     {
-      "src": "apps/web/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist/apps/web",
-        "framework": "vite"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/"
+      "source": "/(.*)",
+      "destination": "/"
     }
   ],
   "env": {
