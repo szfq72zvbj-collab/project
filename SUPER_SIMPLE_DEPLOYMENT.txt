@@ -1,0 +1,31 @@
+=== SUPER SIMPLE DEPLOYMENT ===
+
+FRONTEND (to Vercel):
+1. Open: https://vercel.com/new
+2. Click: "Drag & Drop your frontend folder"
+3. Drag: Your "apps/web" folder
+4. Click: DEPLOY
+5. Done! Your app is live at: https://your-app.vercel.app
+
+BACKEND (to Railway):
+1. Open: https://railway.app/new  
+2. Click: "Upload your backend folder"
+3. Select: Your "apps/api" folder
+4. Click: DEPLOY
+5. Done! Your API is live at: https://your-api.up.railway.app
+
+CONNECT THEM:
+1. Copy your Railway URL
+2. Go to Vercel → Project → Settings → Environment Variables
+3. Add: VITE_API_URL = https://your-api.up.railway.app
+4. Redeploy frontend
+
+TEST:
+1. Open: https://your-app.vercel.app
+2. Should see your math learning platform!
+3. Open: https://your-api.up.railway.app/health
+4. Should see: {"status":"healthy"}
+
+TOTAL TIME: 5 minutes
+COST: $0
+NO GITHUB NEEDED!
