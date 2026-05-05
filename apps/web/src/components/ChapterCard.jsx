@@ -38,8 +38,22 @@ const ChapterCard = ({ chapter }) => {
 
       <CardFooter className="pt-4 border-t bg-muted/10">
         {isPremium ? (
-          <Button asChild variant="outline" className="w-full border-accent/50 text-accent hover:bg-accent hover:text-accent-foreground group-hover:border-accent transition-colors">
-            <a href="/#premium">Unlock Now</a>
+          <Button 
+            variant="outline" 
+            className="w-full border-accent/50 text-accent hover:bg-accent hover:text-accent-foreground group-hover:border-accent transition-colors"
+            onClick={() => {
+              // Navigate to premium section
+              if (window.location.hash === '#/' || window.location.hash === '') {
+                const element = document.getElementById('premium');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+              } else {
+                window.location.hash = '#/#premium';
+              }
+            }}
+          >
+            Unlock Now
           </Button>
         ) : (
           <Button asChild className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground group-hover:gap-3 transition-all">

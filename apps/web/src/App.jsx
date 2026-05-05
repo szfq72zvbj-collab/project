@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Routes, HashRouter as Router } from 'react-router-dom';
+import { Route, Routes, HashRouter as Router, Link } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
@@ -40,9 +40,9 @@ function App() {
                   <div className="text-center">
                     <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
                     <p className="text-xl text-muted-foreground mb-6">Page not found</p>
-                    <a href="/" className="text-primary hover:underline">
+                    <Link to="/" className="text-primary hover:underline">
                       Back to home
-                    </a>
+                    </Link>
                   </div>
                 </div>
               }

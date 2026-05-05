@@ -14,6 +14,21 @@ const Header = () => {
     { name: 'Contact', path: '/contact' },
   ];
 
+  const handleAnchorClick = (anchor) => {
+    setIsMobileMenuOpen(false);
+    // For anchor links, we need to handle them differently with HashRouter
+    if (location.pathname === '/' || location.pathname === '/#/') {
+      // We're already on home page, scroll to anchor
+      const element = document.getElementById(anchor.replace('#', ''));
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // Navigate to home page first, then scroll to anchor
+      window.location.hash = `#/${anchor}`;
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,26 +45,30 @@ const Header = () => {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.path.startsWith('/#') ? link.path : undefined}
-                onClick={(e) => {
-                  if (!link.path.startsWith('/#')) return;
-                  if (location.pathname !== '/') {
-                    window.location.href = link.path;
-                  }
-                }}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
+              <div key={link.name}>
                 {link.path.startsWith('/#') ? (
-                  link.name
+                  <button
+                    onClick={() => handleAnchorClick(link.path)}
+                    className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors bg-transparent border-none cursor-pointer"
+                  >
+                    {link.name}
+                  </button>
                 ) : (
-                  <Link to={link.path}>{link.name}</Link>
+                  <Link 
+                    to={link.path} 
+                    className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {link.name}
+                  </Link>
                 )}
-              </a>
+              </div>
             ))}
-            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <a href="/#premium">Unlock Premium</a>
+            <Button 
+              onClick={() => handleAnchorClick('/#premium')}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Unlock Premium
             </Button>
           </nav>
 
@@ -67,22 +86,31 @@ const Header = () => {
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.path.startsWith('/#') ? link.path : undefined}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-base font-medium text-foreground px-2 py-1 rounded-md hover:bg-muted"
-                >
+                <div key={link.name}>
                   {link.path.startsWith('/#') ? (
-                    link.name
+                    <button
+                      onClick={() => handleAnchorClick(link.path)}
+                      className="text-base font-medium text-foreground px-2 py-1 rounded-md hover:bg-muted bg-transparent border-none cursor-pointer text-left w-full"
+                    >
+                      {link.name}
+                    </button>
                   ) : (
-                    <Link to={link.path} className="block w-full">{link.name}</Link>
+                    <Link 
+                      to={link.path} 
+                      className="text-base font-medium text-foreground px-2 py-1 rounded-md hover:bg-muted block w-full"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {link.name}
+                    </Link>
                   )}
-                </a>
+                </div>
               ))}
               <div className="pt-2">
-                <Button asChild className="w-full bg-primary">
-                  <a href="/#premium" onClick={() => setIsMobileMenuOpen(false)}>Unlock Premium</a>
+                <Button 
+                  onClick={() => handleAnchorClick('/#premium')}
+                  className="w-full bg-primary"
+                >
+                  Unlock Premium
                 </Button>
               </div>
             </nav>
