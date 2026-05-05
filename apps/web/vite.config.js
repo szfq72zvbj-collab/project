@@ -16,5 +16,5 @@ export default defineConfig({
   build: {
     outDir: '../../dist/apps/web',
   },
-  base: process.env.NODE_ENV === 'production' ? '/project/' : '/',
+  base: '/project/',
 });
