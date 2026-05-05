@@ -27,24 +27,6 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get single chapter by ID
-router.get('/:id', (req, res) => {
-  const chapter = chapters.find(c => c.id === req.params.id);
-  
-  if (!chapter) {
-    return res.status(404).json({
-      success: false,
-      error: 'Chapter not found'
-    });
-  }
-  
-  res.json({
-    success: true,
-    data: chapter,
-    timestamp: new Date().toISOString()
-  });
-});
-
 // Get premium chapters only
 router.get('/premium', (req, res) => {
   const premiumChapters = chapters.filter(c => c.isPremium);
@@ -65,6 +47,24 @@ router.get('/free', (req, res) => {
     success: true,
     data: freeChapters,
     count: freeChapters.length,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Get single chapter by ID
+router.get('/:id', (req, res) => {
+  const chapter = chapters.find(c => c.id === req.params.id);
+  
+  if (!chapter) {
+    return res.status(404).json({
+      success: false,
+      error: 'Chapter not found'
+    });
+  }
+  
+  res.json({
+    success: true,
+    data: chapter,
     timestamp: new Date().toISOString()
   });
 });

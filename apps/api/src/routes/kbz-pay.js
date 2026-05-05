@@ -19,7 +19,8 @@ function generateTransactionId() {
 
 // Helper function to create payment signature
 function createSignature(data) {
-  const message = JSON.stringify(data);
+  if (!KBZPAY_WEBHOOK_SECRET) return null;
+  const message = typeof data === 'string' ? data : JSON.stringify(data);
   return crypto
     .createHmac('sha256', KBZPAY_WEBHOOK_SECRET)
     .update(message)
@@ -28,11 +29,22 @@ function createSignature(data) {
 
 // Helper function to verify webhook signature
 function verifyWebhookSignature(payload, signature) {
+  if (!KBZPAY_WEBHOOK_SECRET) return false;
+  if (!signature) return false;
+
   const expectedSignature = createSignature(payload);
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+  if (!expectedSignature) return false;
+
+  const sigBuf = Buffer.from(String(signature), 'utf8');
+  const expBuf = Buffer.from(String(expectedSignature), 'utf8');
+
+  if (sigBuf.length !== expBuf.length) return false;
+
+  try {
+    return crypto.timingSafeEqual(sigBuf, expBuf);
+  } catch (e) {
+    return false;
+  }
 }
 
 // POST /kbz-pay/create-payment
@@ -72,27 +84,33 @@ router.post('/create-payment', async (req, res) => {
     cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-cancel`,
   };
 
-  const kbzPayResponse = await axios.post(
-    `${KBZPAY_API_URL}/payment/create`,
-    kbzPayPayload,
-    {
-      headers: {
-        'Authorization': `Bearer ${KBZPAY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+  try {
+    const kbzPayResponse = await axios.post(
+      `${KBZPAY_API_URL}/payment/create`,
+      kbzPayPayload,
+      {
+        headers: {
+          'Authorization': `Bearer ${KBZPAY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!kbzPayResponse.data || !kbzPayResponse.data.paymentUrl) {
+      logger.error('KBZ PAY API did not return payment URL', kbzPayResponse.data);
+      return res.status(502).json({ error: 'Payment provider error' });
     }
-  );
 
-  if (!kbzPayResponse.data || !kbzPayResponse.data.paymentUrl) {
-    throw new Error('KBZ PAY API did not return payment URL');
+    logger.info(`Payment created with KBZ PAY: ${transactionId}`);
+
+    return res.json({
+      paymentUrl: kbzPayResponse.data.paymentUrl,
+      transactionId,
+    });
+  } catch (err) {
+    logger.error('Error creating KBZ payment', err);
+    return res.status(502).json({ error: 'Payment provider request failed' });
   }
-
-  logger.info(`Payment created with KBZ PAY: ${transactionId}`);
-
-  res.json({
-    paymentUrl: kbzPayResponse.data.paymentUrl,
-    transactionId,
-  });
 });
 
 // GET /kbz-pay/verify/:transactionId
@@ -111,53 +129,58 @@ router.get('/verify/:transactionId', async (req, res) => {
     });
 
   if (purchaseRecords.length === 0) {
-    throw new Error(`Purchase record not found for transaction: ${transactionId}`);
+    return res.status(404).json({ error: `Purchase record not found for transaction: ${transactionId}` });
   }
 
   const purchase = purchaseRecords[0];
 
-  // Verify payment status with KBZ PAY API
-  const kbzPayResponse = await axios.get(
-    `${KBZPAY_API_URL}/payment/verify/${transactionId}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${KBZPAY_API_KEY}`,
-      },
+  try {
+    // Verify payment status with KBZ PAY API
+    const kbzPayResponse = await axios.get(
+      `${KBZPAY_API_URL}/payment/verify/${transactionId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${KBZPAY_API_KEY}`,
+        },
+      }
+    );
+
+    const paymentStatus = kbzPayResponse.data && kbzPayResponse.data.status;
+
+    // Update purchase record with final status
+    await pb.collection('purchases').update(purchase.id, {
+      status: paymentStatus,
+      verifiedAt: new Date().toISOString(),
+    });
+
+    logger.info(`Payment verified: ${transactionId} - Status: ${paymentStatus}`);
+
+    if (paymentStatus === 'completed') {
+      return res.json({
+        status: 'completed',
+        amount: purchase.amount,
+        courseId: purchase.courseId,
+        studentId: purchase.studentId,
+        transactionId,
+      });
     }
-  );
 
-  const paymentStatus = kbzPayResponse.data.status; // 'completed', 'pending', 'failed'
+    if (paymentStatus === 'failed') {
+      return res.status(402).json({ error: `Payment failed for transaction: ${transactionId}` });
+    }
 
-  // Update purchase record with final status
-  await pb.collection('purchases').update(purchase.id, {
-    status: paymentStatus,
-    verifiedAt: new Date().toISOString(),
-  });
-
-  logger.info(`Payment verified: ${transactionId} - Status: ${paymentStatus}`);
-
-  if (paymentStatus === 'completed') {
+    // pending status
     return res.json({
-      status: 'completed',
+      status: 'pending',
       amount: purchase.amount,
       courseId: purchase.courseId,
       studentId: purchase.studentId,
       transactionId,
     });
+  } catch (err) {
+    logger.error('Error verifying KBZ payment', err);
+    return res.status(502).json({ error: 'Payment provider request failed' });
   }
-
-  if (paymentStatus === 'failed') {
-    throw new Error(`Payment failed for transaction: ${transactionId}`);
-  }
-
-  // pending status
-  res.json({
-    status: 'pending',
-    amount: purchase.amount,
-    courseId: purchase.courseId,
-    studentId: purchase.studentId,
-    transactionId,
-  });
 });
 
 // POST /kbz-pay/webhook
@@ -171,11 +194,10 @@ router.post('/webhook', async (req, res) => {
   }
 
   // Verify webhook signature
-  try {
-    verifyWebhookSignature(req.body, signature);
-  } catch (error) {
+  const valid = verifyWebhookSignature(req.body, signature);
+  if (!valid) {
     logger.warn(`Invalid webhook signature for transaction: ${transactionId}`);
-    throw new Error('Invalid webhook signature');
+    return res.status(400).json({ error: 'Invalid webhook signature' });
   }
 
   // Fetch purchase record from PocketBase
@@ -203,7 +225,7 @@ router.post('/webhook', async (req, res) => {
   );
 
   // Return 200 OK to acknowledge receipt
-  res.json({ success: true, transactionId });
+  return res.json({ success: true, transactionId });
 });
 
 export default router;

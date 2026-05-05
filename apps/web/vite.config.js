@@ -15,6 +15,7 @@ export default defineConfig({
   },
   build: {
     outDir: '../../dist/apps/web',
+    minify: false, // Disable minification completely
   },
   base: '/project/',
 });
