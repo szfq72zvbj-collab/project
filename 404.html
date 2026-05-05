@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <script>
+        // Get the current path
+        const path = window.location.pathname;
+        const search = window.location.search;
+        const hash = window.location.hash;
+        
+        // Redirect to index.html with the original path
+        window.location.href = '/project/index.html' + path + search + hash;
+    </script>
+</head>
+<body>
+    <noscript>
+        <h1>Page Not Found</h1>
+        <p>If you are seeing this message, please enable JavaScript or go to the <a href="/project/">home page</a>.</p>
+    </noscript>
+</body>
+</html>
