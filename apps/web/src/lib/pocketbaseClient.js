@@ -1,100 +1,154 @@
-// Mock PocketBase client for development
-// In production, this would connect to actual PocketBase instance
+// Real API client for authentication
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-const mockUsers = [
-  { id: '1', email: 'test@example.com', username: 'testuser', verified: true },
-  { id: '2', email: 'admin@example.com', username: 'admin', verified: true },
-];
-
-const mockAuthStore = {
-  model: null,
-  token: null,
-  isValid: false,
+class AuthStore {
+  constructor() {
+    this.token = localStorage.getItem('auth_token');
+    this.user = JSON.parse(localStorage.getItem('auth_user') || 'null');
+    this.isValid = !!this.token && !!this.user;
+  }
   
-  save(token, model) {
+  save(token, user) {
     this.token = token;
-    this.model = model;
+    this.user = user;
     this.isValid = true;
-    console.log('Auth saved:', { token, model });
-  },
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('auth_user', JSON.stringify(user));
+  }
   
   clear() {
     this.token = null;
-    this.model = null;
+    this.user = null;
     this.isValid = false;
-    console.log('Auth cleared');
-  },
-};
-
-const pb = {
-  authStore: mockAuthStore,
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+  }
   
-  collection(collectionName) {
-    return {
-      getList(page = 1, perPage = 30, options = {}) {
-        console.log(`Getting list from ${collectionName}`);
-        return {
-          items: [],
-          page,
-          perPage,
-          totalItems: 0,
-          totalPages: 0,
-        };
-      },
-      
-      getOne(id) {
-        console.log(`Getting one from ${collectionName}: ${id}`);
-        return { id, name: 'Mock Item' };
-      },
-      
-      create(data) {
-        console.log(`Creating in ${collectionName}:`, data);
-        return { id: 'mock_' + Date.now(), ...data };
-      },
-      
-      update(id, data) {
-        console.log(`Updating in ${collectionName}: ${id}`, data);
-        return { id, ...data };
-      },
+  get model() {
+    return this.user;
+  }
+}
+
+const authStore = new AuthStore();
+
+const apiClient = {
+  authStore,
+  
+  async request(endpoint, options = {}) {
+    const url = `${API_URL}${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
     };
+    
+    if (authStore.token) {
+      headers['Authorization'] = authStore.token;
+    }
+    
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+    
+    return response.json();
   },
   
   async authWithPassword(email, password) {
-    console.log(`Auth with password: ${email}`);
-    // Mock authentication
-    const user = mockUsers.find(u => u.email === email);
-    if (user && password === 'password') {
-      this.authStore.save('mock_token_' + Date.now(), user);
-      return user;
+    try {
+      const result = await this.request('/users/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (result.success) {
+        authStore.save(result.data.token, result.data.user);
+        return result.data.user;
+      } else {
+        throw new Error(result.error || 'Authentication failed');
+      }
+    } catch (error) {
+      throw new Error(error.message || 'Authentication failed');
     }
-    throw new Error('Invalid credentials');
   },
   
   async authRefresh() {
-    console.log('Auth refresh');
-    if (this.authStore.isValid) {
-      return this.authStore.model;
+    try {
+      const result = await this.request('/users/me');
+      if (result.success) {
+        authStore.save(authStore.token, result.data.user);
+        return result.data.user;
+      } else {
+        throw new Error('Session expired');
+      }
+    } catch (error) {
+      authStore.clear();
+      throw new Error('Session expired');
     }
-    throw new Error('Not authenticated');
   },
   
-  async sendVerificationEmail(email) {
-    console.log(`Sending verification email to: ${email}`);
-    return { success: true };
-  },
-  
-  async requestPasswordReset(email) {
-    console.log(`Requesting password reset for: ${email}`);
-    return { success: true };
-  },
-  
-  async confirmPasswordReset(resetToken, newPassword, confirmPassword) {
-    console.log(`Confirming password reset`);
-    if (newPassword === confirmPassword) {
-      return { success: true };
+  async logout() {
+    try {
+      await this.request('/users/logout', {
+        method: 'POST',
+      });
+    } catch (error) {
+      // Ignore logout errors
+    } finally {
+      authStore.clear();
     }
-    throw new Error('Passwords do not match');
+  },
+  
+  async getCurrentUser() {
+    if (!authStore.isValid) {
+      return null;
+    }
+    
+    try {
+      const result = await this.request('/users/me');
+      if (result.success) {
+        return result.data.user;
+      }
+    } catch (error) {
+      // Ignore errors, user will need to login again
+    }
+    
+    return null;
+  },
+  
+  async getAllUsers() {
+    const result = await this.request('/users');
+    return result.success ? result.data : [];
+  },
+  
+  async getDashboard() {
+    const result = await this.request('/users/dashboard');
+    return result.success ? result.data : null;
+  },
+  
+  async getSessions() {
+    const result = await this.request('/users/sessions');
+    return result.success ? result.data : [];
+  },
+  
+  async getLoginHistory() {
+    const result = await this.request('/users/login-history');
+    return result.success ? result.data : [];
+  },
+  
+  // For backward compatibility
+  collection(collectionName) {
+    return {
+      getList: () => ({ items: [] }),
+      getOne: () => ({}),
+      create: () => ({}),
+      update: () => ({}),
+    };
   },
 };
 
-export default pb;
+export default apiClient;

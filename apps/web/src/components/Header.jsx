@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, BookOpen } from 'lucide-react';
+import { Menu, X, BookOpen, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { currentUser, isAuthenticated } = useAuth();
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -16,16 +18,20 @@ const Header = () => {
 
   const handleAnchorClick = (anchor) => {
     setIsMobileMenuOpen(false);
-    // For anchor links, we need to handle them differently with HashRouter
-    if (location.pathname === '/' || location.pathname === '/#/') {
-      // We're already on home page, scroll to anchor
-      const element = document.getElementById(anchor.replace('#', ''));
+    const anchorId = anchor.replace('/', '').replace('#', '');
+    
+    // Check if we're on the home page
+    const isOnHomePage = window.location.hash === '#/' || window.location.hash === '' || window.location.hash === '#';
+    
+    if (isOnHomePage) {
+      // We're on home page, scroll to section
+      const element = document.getElementById(anchorId);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     } else {
-      // Navigate to home page first, then scroll to anchor
-      window.location.hash = `#/${anchor}`;
+      // Navigate to home page with anchor
+      window.location.href = `/#/#${anchorId}`;
     }
   };
 
@@ -43,7 +49,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <div key={link.name}>
                 {link.path.startsWith('/#') ? (
@@ -64,12 +70,53 @@ const Header = () => {
                 )}
               </div>
             ))}
-            <Button 
-              onClick={() => handleAnchorClick('/#premium')}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              Unlock Premium
-            </Button>
+            
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                {currentUser?.role === 'admin' && (
+                  <Link 
+                    to="/admin" 
+                    className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </Link>
+                )}
+                <Link 
+                  to="/dashboard" 
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Dashboard
+                </Link>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Logout will be handled in dashboard
+                    window.location.href = '/#/dashboard';
+                  }}
+                >
+                  {currentUser?.name || 'Account'}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button 
+                  onClick={() => handleAnchorClick('/#premium')}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  Unlock Premium
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Link to="/login">
+                    <Button variant="ghost" size="sm">Login</Button>
+                  </Link>
+                  <Link to="/signup">
+                    <Button variant="outline" size="sm">Sign Up</Button>
+                  </Link>
+                </div>
+              </>
+            )}
           </nav>
 
           {/* Mobile Menu Toggle */}
@@ -105,14 +152,59 @@ const Header = () => {
                   )}
                 </div>
               ))}
-              <div className="pt-2">
-                <Button 
-                  onClick={() => handleAnchorClick('/#premium')}
-                  className="w-full bg-primary"
-                >
-                  Unlock Premium
-                </Button>
-              </div>
+              
+              {isAuthenticated ? (
+                <>
+                  {currentUser?.role === 'admin' && (
+                    <Link 
+                      to="/admin" 
+                      className="flex items-center gap-2 text-base font-medium text-accent px-2 py-1 rounded-md hover:bg-muted"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Shield className="h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  <Link 
+                    to="/dashboard" 
+                    className="text-base font-medium text-foreground px-2 py-1 rounded-md hover:bg-muted"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    My Dashboard
+                  </Link>
+                  <div className="pt-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        window.location.href = '/#/dashboard';
+                      }}
+                    >
+                      {currentUser?.name || 'My Account'}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="pt-2">
+                    <Button 
+                      onClick={() => handleAnchorClick('/#premium')}
+                      className="w-full bg-primary"
+                    >
+                      Unlock Premium
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full">Login</Button>
+                    </Link>
+                    <Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full">Sign Up</Button>
+                    </Link>
+                  </div>
+                </>
+              )}
             </nav>
           </div>
         )}

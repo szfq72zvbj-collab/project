@@ -6,16 +6,20 @@ const Footer = () => {
   const location = useLocation();
 
   const handleAnchorClick = (anchor) => {
-    // For anchor links, we need to handle them differently with HashRouter
-    if (location.pathname === '/' || location.pathname === '/#/') {
-      // We're already on home page, scroll to anchor
-      const element = document.getElementById(anchor.replace('#', ''));
+    const anchorId = anchor.replace('#', '');
+    
+    // Check if we're on the home page
+    const isOnHomePage = window.location.hash === '#/' || window.location.hash === '' || window.location.hash === '#';
+    
+    if (isOnHomePage) {
+      // We're on home page, scroll to section
+      const element = document.getElementById(anchorId);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     } else {
-      // Navigate to home page first, then scroll to anchor
-      window.location.hash = `#/${anchor}`;
+      // Navigate to home page with anchor
+      window.location.href = `/#/#${anchorId}`;
     }
   };
 

@@ -18,6 +18,13 @@ const HomePage = () => {
     { icon: Clock, title: '24/7 Access', description: 'Unlimited access to your unlocked chapters whenever you need them.' },
   ];
 
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -49,11 +56,20 @@ const HomePage = () => {
                 Master Grade 12 Mathematics chapter by chapter with comprehensive notes, step-by-step examples, and exam-focused practice questions.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button asChild size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground h-12 px-8 text-base">
-                  <a href="#chapters">Start Free Learning</a>
+                <Button 
+                  size="lg" 
+                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground h-12 px-8 text-base"
+                  onClick={() => scrollToSection('chapters')}
+                >
+                  Start Free Learning
                 </Button>
-                <Button asChild size="lg" variant="outline" className="h-12 px-8 text-base border-primary/20 hover:bg-primary/5">
-                  <a href="#premium">Unlock Premium Chapters</a>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="h-12 px-8 text-base border-primary/20 hover:bg-primary/5"
+                  onClick={() => scrollToSection('premium')}
+                >
+                  Unlock Premium Chapters
                 </Button>
               </div>
             </motion.div>

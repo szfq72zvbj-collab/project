@@ -14,6 +14,7 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx';
 import PaymentFailurePage from './pages/PaymentFailurePage.jsx';
 import PasswordResetPage from './pages/PasswordResetPage.jsx';
 import CourseDetailPage from './pages/CourseDetailPage.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/dashboard" element={<StudentDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/payment" element={<PaymentPage />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/payment/failure" element={<PaymentFailurePage />} />

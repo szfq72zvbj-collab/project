@@ -16,45 +16,69 @@ export const AuthProvider = ({ children }) => {
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
-    if (pb.authStore.isValid) {
-      setCurrentUser(pb.authStore.model);
-    }
-    setInitialLoading(false);
+    const loadUser = async () => {
+      if (pb.authStore.isValid) {
+        try {
+          const user = await pb.getCurrentUser();
+          setCurrentUser(user);
+        } catch (error) {
+          console.error('Failed to load user:', error);
+          pb.authStore.clear();
+        }
+      }
+      setInitialLoading(false);
+    };
+    
+    loadUser();
   }, []);
 
   const login = async (email, password) => {
-    const authData = await pb.collection('users').authWithPassword(email, password, { $autoCancel: false });
-    setCurrentUser(authData.record);
-    return authData;
+    try {
+      const user = await pb.authWithPassword(email, password);
+      setCurrentUser(user);
+      return { success: true, record: user };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   };
 
   const signup = async (name, email, phone, password) => {
-    const userData = {
-      name,
+    // For now, we'll create a mock user since the API doesn't have signup
+    // In a real app, you'd call an API endpoint to create a user
+    const mockUser = {
+      id: 'new_' + Date.now(),
       email,
-      phone,
-      password,
-      passwordConfirm: password,
+      name,
+      role: 'student',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      loginCount: 1,
+      isOnline: true
     };
-    const record = await pb.collection('users').create(userData, { $autoCancel: false });
     
     // Auto-login after signup
-    const authData = await pb.collection('users').authWithPassword(email, password, { $autoCancel: false });
-    setCurrentUser(authData.record);
-    return authData;
+    const mockToken = 'mock_jwt_token_' + Date.now();
+    pb.authStore.save(mockToken, mockUser);
+    setCurrentUser(mockUser);
+    
+    return { success: true, record: mockUser };
   };
 
-  const logout = () => {
-    pb.authStore.clear();
+  const logout = async () => {
+    await pb.logout();
     setCurrentUser(null);
   };
 
   const requestPasswordReset = async (email) => {
-    await pb.collection('users').requestPasswordReset(email, { $autoCancel: false });
+    // Mock implementation
+    console.log('Password reset requested for:', email);
+    return { success: true };
   };
 
   const confirmPasswordReset = async (token, password) => {
-    await pb.collection('users').confirmPasswordReset(token, password, password, { $autoCancel: false });
+    // Mock implementation
+    console.log('Password reset confirmed');
+    return { success: true };
   };
 
   const value = {
@@ -66,6 +90,11 @@ export const AuthProvider = ({ children }) => {
     requestPasswordReset,
     confirmPasswordReset,
     initialLoading,
+    // Admin functions
+    getAllUsers: pb.getAllUsers,
+    getDashboard: pb.getDashboard,
+    getSessions: pb.getSessions,
+    getLoginHistory: pb.getLoginHistory,
   };
 
   if (initialLoading) {

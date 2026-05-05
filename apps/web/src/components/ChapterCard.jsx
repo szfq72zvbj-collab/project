@@ -43,13 +43,15 @@ const ChapterCard = ({ chapter }) => {
             className="w-full border-accent/50 text-accent hover:bg-accent hover:text-accent-foreground group-hover:border-accent transition-colors"
             onClick={() => {
               // Navigate to premium section
-              if (window.location.hash === '#/' || window.location.hash === '') {
+              const isOnHomePage = window.location.hash === '#/' || window.location.hash === '' || window.location.hash === '#';
+              
+              if (isOnHomePage) {
                 const element = document.getElementById('premium');
                 if (element) {
                   element.scrollIntoView({ behavior: 'smooth' });
                 }
               } else {
-                window.location.hash = '#/#premium';
+                window.location.href = '/#/#premium';
               }
             }}
           >
